@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+    <meta charset="UTF-8">
+    
+  
+      <link rel="apple-touch-icon" type="image/png" href="https://cpwebassets.codepen.io/assets/favicon/apple-touch-icon-5ae1a0698dcc2402e9712f7d01ed509a57814f994c660df9f7a952f3060705ee.png">
+  
+      <meta name="apple-mobile-web-app-title" content="CodePen">
+  
+      <link rel="shortcut icon" type="image/x-icon" href="https://cpwebassets.codepen.io/assets/favicon/favicon-aec34940fbc1a6e787974dcd360f2c6b63348d4b1f4e06c77743096d55480f33.ico">
+  
+      <link rel="mask-icon" type="image/x-icon" href="https://cpwebassets.codepen.io/assets/favicon/logo-pin-b4b4269c16397ad2f0f7a01bcdf513a1994f4c94b8af2f191c09eb0d601762b1.svg" color="#111">
+  
+  
+  
+    
+      <script src="https://cpwebassets.codepen.io/assets/common/stopExecutionOnTimeout-2c7831bb44f98c1391d6a4ffda0e1fd302503391ca806e7fcc7b9b87197aec26.js"></script>
+  
+  
+    <title>Racing Game with Three.js</title>
+  
+      <link rel="canonical" href="https://codepen.io/HunorMarton/pen/ExNzWqm">
+    
+    
+    
+    
+  <style>
+  @import url("https://fonts.googleapis.com/css?family=Press+Start+2P");
+  
+  body {
+    margin: 0;
+    padding: 0;
+    color: white;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  }
+  
+  button {
+    outline: none;
+    cursor: pointer;
+    border: none;
+    box-shadow: 3px 5px 0px 0px rgba(0, 0, 0, 0.75);
+  }
+  
+  a,
+  a:visited {
+    color: inherit;
+  }
+  
+  #score {
+    position: absolute;
+    font-family: "Press Start 2P", cursive;
+    font-size: 0.9em;
+    color: white;
+    transform: translate(-50%, -50%);
+    opacity: 0.9;
+    max-width: 100px;
+    text-align: center;
+    line-height: 1.6em;
+  }
+  
+  #controls {
+    position: absolute;
+    bottom: 50px;
+    left: 50px;
+    display: none;
+  }
+  
+  #controls #buttons {
+    width: 80px;
+    opacity: 0;
+    transition: opacity 2s;
+  }
+  
+  #controls #instructions {
+    margin-left: 20px;
+    max-width: 300px;
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 20px;
+    opacity: 0;
+    transition: opacity 2s;
+  }
+  
+  #controls button {
+    width: 100%;
+    height: 40px;
+    background-color: white;
+    border: 1px solid black;
+    margin-bottom: 10px;
+  }
+  
+  #results {
+    position: absolute;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+    background-color: rgba(20, 20, 20, 0.75);
+    display: none;
+    z-index: 51;
+  }
+  
+  #results .content {
+    max-width: 350px;
+    padding: 50px;
+    border-radius: 20px;
+  }
+  
+  @media (min-height: 425px) {
+    #score {
+      font-size: 1.5em;
+      max-width: 150px;
+    }
+  
+    #controls {
+      display: flex;
+    }
+  }
+  </style>
+  
+  <script>
+    window.console = window.console || function(t) {};
+  </script>
+  
+    
+    
+  </head>
+  
+  <body translate="no">
+    <div id="score" style="left: 1112.82px; top: 106.5px;">Press UP</div>
+  
+  <div id="controls">
+    <div id="buttons" style="opacity: 1;">
+      <button id="accelerate">
+        <svg width="30" height="30" viewBox="0 0 10 10">
+          <g transform="rotate(0, 5,5)">
+            <path d="M5,4 L7,6 L3,6 L5,4"></path>
+          </g>
+        </svg>
+      </button>
+      <button id="decelerate">
+        <svg width="30" height="30" viewBox="0 0 10 10">
+          <g transform="rotate(180, 5,5)">
+            <path d="M5,4 L7,6 L3,6 L5,4"></path>
+          </g>
+        </svg>
+      </button>
+    </div>
+    <div id="instructions" style="opacity: 1;">
+      Press UP to start. Avoid collision with other vehicles by accelerating
+      or decelerating with the UP and DOWN keys.
+    </div>
+  </div>
+  
+  <div id="results" style="display: none;">
+    <div class="content">
+      <h1>You hit another vehicle</h1>
+      <p>To reset the game press R</p>
+  
+    </div>
+  </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r126/three.min.js"></script>
+        <script id="rendered-js", src="main.js"></script>
+          
+ <!-- <canvas style="display: block; width: 3840px; height: 213px;" width="3840" height="213"></canvas> -->
+
+</body></html>
