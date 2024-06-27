@@ -53,6 +53,20 @@ function innifyVectors(vectors, summation) {
   });
 }
 
+function scalePoints(points, newMinX, newMaxX, newMinY, newMaxY) {
+  // Calculate the scaling factor
+  const scaleFactorX = newMaxX - newMinX;
+  const scaleFactorY = newMaxY - newMinY;
+  // Scale each point in the list and return as THREE.Vector2
+  const scaledPoints = points.map(point => {
+      const scaledX = point.x * scaleFactorX + newMinX;
+      const scaledY = point.y * scaleFactorY + newMinY;
+      return new THREE.Vector2(scaledX, scaledY);
+  });
+
+  return scaledPoints;
+}
+
 const vehicleColors = [
   0xa52523,
   0xef2d56,
@@ -80,15 +94,15 @@ const config = {
   showHitZones: false,
   shadows: true, // Use shadow
   trees: true, // Add trees to the map
-  curbs: true, // Show texture on the extruded geometry
+  curbs: false, // Show texture on the extruded geometry
   grid: false // Show grid helper
 };
 
 let speed = 0;
 
 const playerAngleInitial = Math.PI;
-const playerXInitial = -80;
-const playerYInitial = -235;
+const playerXInitial = 1500;
+const playerYInitial = -1050;
 let playerAngleMoved;
 let Xdisplace;
 let Ydisplace;
@@ -123,7 +137,7 @@ setTimeout(() => {
 // Initialize ThreeJs
 // Set up camera
 const aspectRatio = window.innerWidth / window.innerHeight;
-const cameraWidth = 1080;
+const cameraWidth = window.innerWidth/2;
 const cameraHeight = cameraWidth / aspectRatio;
 
 const camera = new THREE.OrthographicCamera(
@@ -136,39 +150,19 @@ const camera = new THREE.OrthographicCamera(
 );
 
 const trackRadius = 235;
-const trackWidth = 45;
-const innerTrackSize = 400;
-const outerTrackSize = 550;
-const innerTrackRadius = trackRadius - trackWidth;
-const outerTrackRadius = trackRadius + trackWidth;
-const mapWidth = 5400
-const mapHeight = 5011
+const mapWidth = 10000;
+const mapHeight = 10000;
 const trackRadius2 = 197;
+const trackWidth = 45;
+const dim = 6;
 
-// Define points for the outer shape
-const outerPoints = [
-  new THREE.Vector2(-mapWidth, -mapHeight ),
-  new THREE.Vector2(mapWidth , -mapHeight ),
-  new THREE.Vector2(mapWidth , mapWidth ),
-  new THREE.Vector2(-mapWidth , mapHeight ),
-  new THREE.Vector2(-mapWidth , -mapHeight )
-];
-
-let monza =  [new THREE.Vector2(0.32924107142857145,0.10068259385665534),new THREE.Vector2(0.3165178571428572,0.19385665529010243),new THREE.Vector2(0.12968749999999998,0.23071672354948802),new THREE.Vector2(0.11808035714285715,0.489419795221843),
-                new THREE.Vector2(0.09196428571428569,0.5723549488054607),new THREE.Vector2(0.12276785714285714,0.8532423208191127),new THREE.Vector2(0.3410714285714286,0.509556313993174),new THREE.Vector2(0.5995535714285715,0.4218430034129692),
-                new THREE.Vector2(0.6872767857142856,0.33924914675767925),new THREE.Vector2(0.9089285714285714,0.3146757679180887),new THREE.Vector2(0.8928571428571429,0.09726962457337884),new THREE.Vector2(0.32924107142857145,0.10068259385665534)];
-
-monza = multiplyVectors(monza, 2);
-monza = sumVectors(monza, -1);
-
-const MiddlePoints = multiplyVectors(monza, 500);
-
-const innerPoints = innifyVectors(MiddlePoints, 100);
 
 const scene = new THREE.Scene();
 
 const playerCar = Car();
+const smoke = Smoke();
 scene.add(playerCar);
+scene.add(smoke);
 
 renderMap(mapWidth, mapHeight * 2); // The map height is higher because we look at the map from an angle
 
@@ -177,14 +171,14 @@ const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
 scene.add(ambientLight);
 
 const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-dirLight.position.set(100, -300, 3000);
+dirLight.position.set(100, -300, 300);
 dirLight.castShadow = true;
-dirLight.shadow.mapSize.width = 1024;
-dirLight.shadow.mapSize.height = 1024;
-dirLight.shadow.camera.left = -400;
-dirLight.shadow.camera.right = 350;
-dirLight.shadow.camera.top = 400;
-dirLight.shadow.camera.bottom = -300;
+dirLight.shadow.mapSize.width = 2048;
+dirLight.shadow.mapSize.height = 2048;
+dirLight.shadow.camera.left = -3000;
+dirLight.shadow.camera.right = 3500;
+dirLight.shadow.camera.top = 2500;
+dirLight.shadow.camera.bottom = -2500;
 dirLight.shadow.camera.near = 100;
 dirLight.shadow.camera.far = 5000;
 scene.add(dirLight);
@@ -211,6 +205,7 @@ document.body.appendChild(renderer.domElement);
 reset();
 
 function reset() {
+
   // Reset position and score
   playerAngleMoved = 0;
   Xdisplace = 0;
@@ -277,22 +272,70 @@ function getLineMarkings(mapWidth, mapHeight) {
   context.strokeStyle = "#E0FFFF";
   context.setLineDash([10, 14]);
 
-  const LineMarkingsPoints = [
-    new THREE.Vector2(mapWidth / 2 - trackRadius, mapHeight / 2 - trackRadius),
-    new THREE.Vector2(mapWidth / 2 + trackRadius, mapHeight / 2 - trackRadius),
-    new THREE.Vector2(mapWidth / 2 + trackRadius, mapHeight / 2 + trackRadius),
-    new THREE.Vector2(mapWidth / 2 - trackRadius, mapHeight / 2 + trackRadius),
-    new THREE.Vector2(mapWidth / 2 - trackRadius, mapHeight / 2 - trackRadius),
-  ];
+  let primaVariante = [new THREE.Vector2(1,0),new THREE.Vector2(0.5126488095238095,0.11205915813424361),new THREE.Vector2(0.371279761904762,0.8589306029579068),new THREE.Vector2(0,1)]
+  
+  // Create a new shape
+  let contex = new THREE.Shape();
 
-  const spline = new THREE.SplineCurve(LineMarkingsPoints);
-  const splinePoints = spline.getPoints(100);
+  // Move to the starting point
+  contex.moveTo(100*dim, -150*dim);
 
-  context.beginPath();
-  context.moveTo(splinePoints[0].x, splinePoints[0].y);
-  for (let i = 1; i < splinePoints.length; i++) {
-    context.lineTo(splinePoints[i].x, splinePoints[i].y);
+  // Add another straight line
+  contex.lineTo(0*dim, -150*dim);
+  // Add another straight line
+  
+  let curve = new THREE.SplineCurve(scalePoints(primaVariante, -150*dim, 0*dim, -150*dim, 0*dim));
+
+  // Get points from the curve and add them to the shape
+  let points = curve.getPoints(50); // 50 points on the curve
+  for (let i = 0; i < points.length; i++) {
+    contex.lineTo(points[i].x, points[i].y);
   }
+  
+  contex.lineTo(-350*dim, 0*dim);
+
+  let curvone = [new THREE.Vector2(0,1),new THREE.Vector2(0.75,0.75),new THREE.Vector2(1,0)];
+
+  curve = new THREE.SplineCurve(scalePoints(curvone, -350*dim, -400*dim, 75*dim, 0*dim));
+
+  points = curve.getPoints(50); // 50 points on the curve
+  for (let i = 0; i < points.length; i++) {
+    contex.lineTo(points[i].x, points[i].y);
+  }
+
+  contex.lineTo(-400*dim, 75*dim);
+
+  contex.lineTo(-400*dim, 300*dim);
+
+  contex.lineTo(-300*dim, 300*dim);
+
+
+  let ascari = [new THREE.Vector2(0,1),new THREE.Vector2(0.14174107142857142,0.6407849829351535),new THREE.Vector2(0.359375,0.25170648464163825),new THREE.Vector2(0.5758928571428571,0.19283276450511944),new THREE.Vector2(0.7421875,0.025597269624573427),new THREE.Vector2(1,0)] ;
+  
+  curve = new THREE.SplineCurve(scalePoints(ascari, -300*dim, 100*dim, 70*dim, 300*dim));
+  
+  // Get points from the curve and add them to the shape
+  
+  points = curve.getPoints(50); // 50 points on the curve
+  for (let i = 0; i < points.length; i++) {
+    contex.lineTo(points[i].x, points[i].y);
+  }
+  
+  // Add another straight line
+  contex.lineTo(100*dim, 70*dim);
+
+  let alboreto = [new THREE.Vector2(0,0),new THREE.Vector2(0.1670386904761905,0.2599544937428897),new THREE.Vector2(0.17522321428571427,0.7457337883959044),new THREE.Vector2(0,1)]
+
+  curve = new THREE.SplineCurve(scalePoints(alboreto, 100*dim, 450*dim, 70*dim, -150*dim));
+
+  points = curve.getPoints(50); // 50 points on the curve
+  for (let i = 0; i < points.length; i++) {
+    contex.lineTo(points[i].x, points[i].y);
+  }
+
+  contex.lineTo(100*dim, -150*dim);
+
+  // Optionally close the shape
   context.closePath();
   context.stroke();
 
@@ -320,7 +363,7 @@ function getCurbsTexture(mapWidth, mapHeight) {
   ];
 
   const spline = new THREE.SplineCurve(CurbPoints);
-  const splinePoints = spline.getPoints(100);
+  const splinePoints = spline.getPoints(1000);
 
   context.beginPath();
   context.moveTo(splinePoints[0].x, splinePoints[0].y);
@@ -338,26 +381,180 @@ function getCurbsTexture(mapWidth, mapHeight) {
 }
 
 function getMiddleIsland() {
-
+  let primaVariante = [new THREE.Vector2(1,0),new THREE.Vector2(0.5126488095238095,0.11205915813424361),new THREE.Vector2(0.371279761904762,0.8589306029579068),new THREE.Vector2(0,1)]
   
-  // Create the spline curve
-  const splineCurve = new THREE.SplineCurve(MiddlePoints);
+  // Create a new shape
+  let islandMiddle = new THREE.Shape();
 
-  const islandMiddle = new THREE.Shape(splineCurve.getPoints(50));
+  // Move to the starting point
+  islandMiddle.moveTo(-500*dim, -150*dim);
+
+  // Add another straight line
+  islandMiddle.lineTo(0*dim, -150*dim);
+  // Add another straight line
+  
+  let curve = new THREE.SplineCurve(scalePoints(primaVariante, -150*dim, 0*dim, -150*dim, 0*dim));
+
+  // Get points from the curve and add them to the shape
+  let points = curve.getPoints(50); // 50 points on the curve
+  for (let i = 0; i < points.length; i++) {
+    islandMiddle.lineTo(points[i].x, points[i].y);
+  }
+  
+  islandMiddle.lineTo(-350*dim, 0*dim);
+
+  let curvone = [new THREE.Vector2(0,1),new THREE.Vector2(0.75,0.75),new THREE.Vector2(1,0)];
+
+  curve = new THREE.SplineCurve(scalePoints(curvone, -350*dim, -400*dim, 75*dim, 0*dim));
+
+  points = curve.getPoints(50); // 50 points on the curve
+  for (let i = 0; i < points.length; i++) {
+    islandMiddle.lineTo(points[i].x, points[i].y);
+  }
+
+  islandMiddle.lineTo(-400*dim, 75*dim);
+
+  islandMiddle.lineTo(-400*dim, 300*dim);
+
+  islandMiddle.lineTo(-300*dim, 300*dim);
+
+
+  let ascari = [new THREE.Vector2(0,1),new THREE.Vector2(0.14174107142857142,0.6407849829351535),new THREE.Vector2(0.359375,0.25170648464163825),new THREE.Vector2(0.5758928571428571,0.19283276450511944),new THREE.Vector2(0.7421875,0.025597269624573427),new THREE.Vector2(1,0)] ;
+  
+  curve = new THREE.SplineCurve(scalePoints(ascari, -300*dim, 100*dim, 70*dim, 300*dim));
+  
+  // Get points from the curve and add them to the shape
+  
+  points = curve.getPoints(50); // 50 points on the curve
+  for (let i = 0; i < points.length; i++) {
+    islandMiddle.lineTo(points[i].x, points[i].y);
+  }
+  
+  // Add another straight line
+  islandMiddle.lineTo(100*dim, 70*dim);
+
+  let alboreto =  [new THREE.Vector2(0,0),new THREE.Vector2(0.5520833333333334,0.15927189988623447),new THREE.Vector2(0.5494791666666667,0.7861205915813425),new THREE.Vector2(0,1)] 
+
+  curve = new THREE.SplineCurve(scalePoints(alboreto, 600*dim, 750*dim, 70*dim, -150*dim));
+
+  points = curve.getPoints(50); // 50 points on the curve
+  for (let i = 0; i < points.length; i++) {
+    islandMiddle.lineTo(points[i].x, points[i].y);
+  }
+
+  islandMiddle.lineTo(500*dim, -150*dim);
+
+  // Optionally close the shape
+  islandMiddle.closePath();
 
   return islandMiddle;
 }
 
 function getOuterField() {
+  let outerShape = new THREE.Shape();
+  
+  // Define points for the outer shape
+  const outerPoints = [
+    new THREE.Vector2(-mapWidth, -mapHeight ),
+    new THREE.Vector2(mapWidth , -mapHeight ),
+    new THREE.Vector2(mapWidth , mapWidth ),
+    new THREE.Vector2(-mapWidth , mapHeight ),
+    new THREE.Vector2(-mapWidth , -mapHeight )
+  ];
 
-
+  for (let i = 0; i < outerPoints.length; i++) {
+    outerShape.lineTo(outerPoints[i].x, outerPoints[i].y);
+  }
+  outerShape.closePath();
+  
   // Create splines
-  const outerSpline = new THREE.SplineCurve(outerPoints);
-  const innerSpline = new THREE.SplineCurve(innerPoints);
+  // Create a new shape
+  let innerPath = new THREE.Shape();
+  
+  // Move to the starting point
+  innerPath.moveTo(600*dim, -200*dim);
+  
+  // Add another straight line
+  innerPath.lineTo(0, -200*dim);
+  
+  let primaVariante = [new THREE.Vector2(1,0),new THREE.Vector2(0.5126488095238095,0.11205915813424361),new THREE.Vector2(0.371279761904762,0.8589306029579068),new THREE.Vector2(0,1)]
+  
+  let curve = new THREE.SplineCurve(scalePoints(primaVariante, -200*dim, -50*dim, -200*dim, -50*dim));
+  
+  // Get points from the curve and add them to the shape
+  let points = curve.getPoints(50); // 50 points on the curve
+  for (let i = 0; i < points.length; i++) {
+    innerPath.lineTo(points[i].x, points[i].y);
+  }
 
-  // Create shapes from splines
-  const outerShape = new THREE.Shape(outerSpline.getPoints(50));
-  const innerPath = new THREE.Path(innerSpline.getPoints(50));
+  innerPath.lineTo(-400*dim, -50*dim);
+  
+  let curvone = [new THREE.Vector2(0,1),new THREE.Vector2(0.75,0.75),new THREE.Vector2(1,0)];
+
+  curve = new THREE.SplineCurve(scalePoints(curvone, -400*dim, -500*dim, 50*dim, -50*dim));
+
+  // Get points from the curve and add them to the shape
+  
+  points = curve.getPoints(50); // 50 points on the curve
+  for (let i = 0; i < points.length; i++) {
+    innerPath.lineTo(points[i].x, points[i].y);
+  }
+
+  innerPath.lineTo(-500*dim, 50*dim);
+
+  // Add a straight line to the shape
+  innerPath.lineTo(-500*dim, 400*dim);
+
+  let lesmo1 = [new THREE.Vector2(0,1),new THREE.Vector2(0.25,0.25),new THREE.Vector2(1,0)];
+
+  curve = new THREE.SplineCurve(scalePoints(lesmo1, -500*dim, -400*dim, 400*dim, 300*dim));
+
+  // Get points from the curve and add them to the shape
+  
+  points = curve.getPoints(50); // 50 points on the curve
+  for (let i = 0; i < points.length; i++) {
+    innerPath.lineTo(points[i].x, points[i].y);
+  }
+
+  innerPath.lineTo(-300*dim, 400*dim);
+
+  let lesmo2 = [new THREE.Vector2(0,1),new THREE.Vector2(0.75,0.75),new THREE.Vector2(1,0)];
+
+  curve = new THREE.SplineCurve(scalePoints(lesmo2, -300*dim, -200*dim, 300*dim, 400*dim));
+
+  // Get points from the curve and add them to the shape
+  
+  points = curve.getPoints(50); // 50 points on the curve
+  for (let i = 0; i < points.length; i++) {
+    innerPath.lineTo(points[i].x, points[i].y);
+  }
+  
+  let ascari = [new THREE.Vector2(0,1),new THREE.Vector2(0.14174107142857142,0.6407849829351535),new THREE.Vector2(0.359375,0.25170648464163825),new THREE.Vector2(0.5758928571428571,0.19283276450511944),new THREE.Vector2(0.7421875,0.025597269624573427),new THREE.Vector2(1,0)] ;
+  
+  curve = new THREE.SplineCurve(scalePoints(ascari, -200*dim, 200*dim, 150*dim, 300*dim));
+  
+  // Get points from the curve and add them to the shape
+  
+  points = curve.getPoints(50); // 50 points on the curve
+  for (let i = 0; i < points.length; i++) {
+    innerPath.lineTo(points[i].x, points[i].y);
+  }
+
+  // Add a straight line to the shape
+  innerPath.lineTo(200*dim, 150*dim);
+
+  let alboreto =  [new THREE.Vector2(0,0),new THREE.Vector2(0.5520833333333334,0.15927189988623447),new THREE.Vector2(0.5494791666666667,0.7861205915813425),new THREE.Vector2(0,1)] 
+
+  curve = new THREE.SplineCurve(scalePoints(alboreto, 600*dim, 900*dim, 150*dim, -200*dim));
+
+  points = curve.getPoints(50); // 50 points on the curve
+  for (let i = 0; i < points.length; i++) {
+    innerPath.lineTo(points[i].x, points[i].y);
+  }
+
+  // Optionally close the shape
+  innerPath.closePath();
+
 
   // Add inner path as a hole in the outer shape
   outerShape.holes.push(innerPath);
@@ -400,14 +597,6 @@ function renderMap(mapWidth, mapHeight) {
   fieldMesh.matrixAutoUpdate = false;
   scene.add(fieldMesh);
 
-  const spline = new THREE.CatmullRomCurve3(innerPoints);
-  const geometry = new THREE.BufferGeometry().setFromPoints(spline.getPoints(50));
-
-  const material = new THREE.LineBasicMaterial({ color: 0x808080, side: THREE.DoubleSide }); // Gray track
-  const line = new THREE.Line(geometry, material);
-
-  scene.add(line);
-
   if (config.trees) {
     const positions = [
       { x: trackRadius2 * 1.3, y: 0 },
@@ -424,6 +613,20 @@ function renderMap(mapWidth, mapHeight) {
       { x: trackRadius2 * 1.5, y: -trackRadius2 * 2.4 },
       { x: -trackRadius2 * 0.7, y: -trackRadius2 * 2.4 },
       { x: -trackRadius2 * 1.5, y: -trackRadius2 * 1.8 },
+      { x:1500, y:-800},
+      { x:1550, y:-1300},
+      { x:1300, y:-800},
+      { x:1700, y:-1300},
+      { x:1000, y:-1300},
+      { x:800, y:-800},
+      { x:-200, y:-80},
+      { x:-400, y:-60},
+      { x:2000, y:-1350},
+      { x:2150, y:-1325},
+      { x:3800, y:-750},
+      { x:3500, y:-800},
+      { x:3800, y:200},
+      { x:3600, y:220},
     ];
 
     positions.forEach(pos => {
@@ -464,6 +667,22 @@ function getCarSideTexture() {
   context.fillRect(58, 8, 60, 24);
 
   return new THREE.CanvasTexture(canvas);
+}
+
+function Smoke() {
+  let smoke = new THREE.Group()
+  let smokeright1 = new THREE.Mesh(
+    new THREE.SphereBufferGeometry(10, 64, 32),
+    new THREE.MeshLambertMaterial({ color: 0x999999 })
+  );
+  let smokeleft1 = new THREE.Mesh(
+    new THREE.SphereBufferGeometry(10, 64, 32),
+    new THREE.MeshLambertMaterial({ color: 0x999999 })
+  );
+  smokeleft1.position.y = 20
+  smoke.add(smokeright1)
+  smoke.add(smokeleft1)
+  return smoke
 }
 
 function Car() {
@@ -521,101 +740,6 @@ function Car() {
   }
 
   return car;
-}
-
-function getTruckFrontTexture() {
-  const canvas = document.createElement("canvas");
-  canvas.width = 32;
-  canvas.height = 32;
-  const context = canvas.getContext("2d");
-
-  context.fillStyle = "#ffffff";
-  context.fillRect(0, 0, 32, 32);
-
-  context.fillStyle = "#666666";
-  context.fillRect(0, 5, 32, 10);
-
-  return new THREE.CanvasTexture(canvas);
-}
-
-function getTruckSideTexture() {
-  const canvas = document.createElement("canvas");
-  canvas.width = 32;
-  canvas.height = 32;
-  const context = canvas.getContext("2d");
-
-  context.fillStyle = "#ffffff";
-  context.fillRect(0, 0, 32, 32);
-
-  context.fillStyle = "#666666";
-  context.fillRect(17, 5, 15, 10);
-
-  return new THREE.CanvasTexture(canvas);
-}
-
-function Truck() {
-  const truck = new THREE.Group();
-  const color = pickRandom(vehicleColors);
-
-  const base = new THREE.Mesh(
-    new THREE.BoxBufferGeometry(100, 25, 5),
-    new THREE.MeshLambertMaterial({ color: 0xb4c6fc })
-  );
-  base.position.z = 10;
-  truck.add(base);
-
-  const cargo = new THREE.Mesh(
-    new THREE.BoxBufferGeometry(75, 35, 40),
-    new THREE.MeshLambertMaterial({ color: 0xffffff }) // 0xb4c6fc
-  );
-  cargo.position.x = -15;
-  cargo.position.z = 30;
-  cargo.castShadow = true;
-  cargo.receiveShadow = true;
-  truck.add(cargo);
-
-  const truckFrontTexture = getTruckFrontTexture();
-  truckFrontTexture.center = new THREE.Vector2(0.5, 0.5);
-  truckFrontTexture.rotation = Math.PI / 2;
-
-  const truckLeftTexture = getTruckSideTexture();
-  truckLeftTexture.flipY = false;
-
-  const truckRightTexture = getTruckSideTexture();
-
-  const cabin = new THREE.Mesh(new THREE.BoxBufferGeometry(25, 30, 30), [
-    new THREE.MeshLambertMaterial({ color, map: truckFrontTexture }),
-    new THREE.MeshLambertMaterial({ color }), // back
-    new THREE.MeshLambertMaterial({ color, map: truckLeftTexture }),
-    new THREE.MeshLambertMaterial({ color, map: truckRightTexture }),
-    new THREE.MeshLambertMaterial({ color }), // top
-    new THREE.MeshLambertMaterial({ color }) // bottom
-  ]);
-  cabin.position.x = 40;
-  cabin.position.z = 20;
-  cabin.castShadow = true;
-  cabin.receiveShadow = true;
-  truck.add(cabin);
-
-  const backWheel = Wheel();
-  backWheel.position.x = -30;
-  truck.add(backWheel);
-
-  const middleWheel = Wheel();
-  middleWheel.position.x = 10;
-  truck.add(middleWheel);
-
-  const frontWheel = Wheel();
-  frontWheel.position.x = 38;
-  truck.add(frontWheel);
-
-  if (config.showHitZones) {
-    truck.userData.hitZone1 = HitZone();
-    truck.userData.hitZone2 = HitZone();
-    truck.userData.hitZone3 = HitZone();
-  }
-
-  return truck;
 }
 
 function HitZone() {
@@ -751,70 +875,21 @@ function movePlayerCar(timeDelta) {
   playerCar.position.x = playerX;
   playerCar.position.y = playerY;
   
-  camera.position.set(playerX, playerY, 200);
+  camera.position.set(playerX+playerX*1e-3, playerY+playerY*1e-3, 300);
   camera.lookAt(playerX, playerY, 0);
   playerCar.rotation.z = totalPlayerAngle;
 
-  let test = [new THREE.Vector2(0.3314732142857143,0.14846416382252559),new THREE.Vector2(0.2930803571428572,0.26211604095563146),new THREE.Vector2(0.12968749999999998,0.24948805460750856),new THREE.Vector2(0.12812500000000002,0.5423208191126281),new THREE.Vector2(0.05401785714285712,0.6559726962457337),
-    new THREE.Vector2(0.07254464285714286,0.8839590443686007),new THREE.Vector2(0.24062500000000003,0.879863481228669),new THREE.Vector2(0.45000000000000007,0.47986348122866895),new THREE.Vector2(0.8368303571428571,0.51160409556314),new THREE.Vector2(0.9178571428571428,0.16621160409556313),
-    new THREE.Vector2(0.3314732142857143,0.14675767918088733)]
-    
-}
-
-function moveOtherVehicles(timeDelta) {
-  otherVehicles.forEach((vehicle) => {
-    if (vehicle.clockwise) {
-      vehicle.angle -= speed * timeDelta * vehicle.speed;
-    } else {
-      vehicle.angle += speed * timeDelta * vehicle.speed;
-    }
-
-    const vehicleX = Math.cos(vehicle.angle) * trackRadius + trackRadius2;
-    const vehicleY = Math.sin(vehicle.angle) * trackRadius;
-    const rotation =
-      vehicle.angle + (vehicle.clockwise ? -Math.PI / 2 : Math.PI / 2);
-    vehicle.mesh.position.x = vehicleX;
-    vehicle.mesh.position.y = vehicleY;
-    vehicle.mesh.rotation.z = rotation;
-  });
-}
-
-function getPlayerSpeed(timeDelta) {
-  if (accelerate & speed === 0) speed = 1e-10;
-  if (decelerate & speed === 0) speed = 0;
-  if (accelerate) speed += 1e-3 * timeDelta;
-  if (decelerate) speed -= 2.5e-3 * timeDelta;
-  return speed;
-}
 
 
-
-function addVehicle() {
-  const vehicleTypes = ["car", "truck"];
-
-  const type = pickRandom(vehicleTypes);
-  const speed = getVehicleSpeed(type);
-  const clockwise = Math.random() >= 0.5;
-
-  const angle = clockwise ? Math.PI / 2 : -Math.PI / 2;
-
-  const mesh = type == "car" ? Car() : Truck();
-  scene.add(mesh);
-
-  otherVehicles.push({ mesh, type, speed, clockwise, angle });
-}
-
-function getVehicleSpeed(type) {
-  if (type == "car") {
-    const minimumSpeed = 1;
-    const maximumSpeed = 2;
-    return minimumSpeed + Math.random() * (maximumSpeed - minimumSpeed);
-  }
-  if (type == "truck") {
-    const minimumSpeed = 0.6;
-    const maximumSpeed = 1.5;
-    return minimumSpeed + Math.random() * (maximumSpeed - minimumSpeed);
-  }
+  smoke.position.x = playerX+25-(Xdisplace*1e-3);
+  smoke.position.y = playerY+10-(Ydisplace*1e-3);
+  smoke.rotation.z = totalPlayerAngle;
+  if (speed<2 & accelerate){
+    smoke.visible = true
+    smoke.scaleFactorX = 1/speed
+    smoke.scaleFactorY = 1/speed
+  } 
+  else smoke.visible = false
 }
 
 function getHitZonePosition(center, angle, clockwise, distance) {
