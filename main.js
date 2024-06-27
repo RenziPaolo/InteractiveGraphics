@@ -866,6 +866,8 @@ function movePlayerCar(timeDelta) {
     playerAngleMoved += timeDelta * 2e-2 * (1/playerSpeed)**1/3;
   if (turn_right)
     playerAngleMoved -= timeDelta * 2e-2 * (1/playerSpeed)**1/3;
+  if (playerAngleMoved>.1)
+    playerAngleMoved = .1;
 
   const totalPlayerAngle = playerAngleInitial + playerAngleMoved;
   Xdisplace += Math.cos(totalPlayerAngle) * playerSpeed;
