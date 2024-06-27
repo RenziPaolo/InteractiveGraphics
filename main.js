@@ -742,6 +742,7 @@ function Car() {
   return car;
 }
 
+
 function HitZone() {
   const hitZone = new THREE.Mesh(
     new THREE.CylinderGeometry(20, 20, 60, 30),
@@ -890,6 +891,14 @@ function movePlayerCar(timeDelta) {
     smoke.scaleFactorY = 1/speed
   } 
   else smoke.visible = false
+}
+
+function getPlayerSpeed(timeDelta) {
+  if (accelerate & speed === 0) speed = 1e-10;
+  if (decelerate & speed === 0) speed = 0;
+  if (accelerate) speed += 1e-3 * timeDelta;
+  if (decelerate) speed -= 2.5e-3 * timeDelta;
+  return speed;
 }
 
 function getHitZonePosition(center, angle, clockwise, distance) {
